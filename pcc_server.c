@@ -74,12 +74,12 @@ void handle_client(int client_socket_fd) {
 }
 
 int main(int argc, char *argv[]) {
-    int sock_fd;
     int i;
-    int total_printable_chars_host; // Total count of printable characters received, in host byte order
-    int total_printable_chars_network; // Total count of printable characters to send, in network byte order
-    int enable = 1; // Variable to enable socket options, specifically SO_REUSEADDR
-    int cont_to_next_clnt = 0; // Flag to control the flow to the next client interaction
+    int sock_fd;
+    int pcc_host; // Total count of printable characters received, in host byte order
+    int pcc_network; // Total count of printable characters to send, in network byte order
+    int enable = 1; // Variable to enable SO_REUSEADDR
+    int proceed_to_next_client = 0; // Flag to control the flow to the next client interaction
 
     char buffer[BUFF_SIZE]; // Buffer for temporarily storing data read from the socket
 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
 
         // Currently interacting with a client
         PROCESSING_CLIENT = 1;
-        cont_to_next_clnt = 0;
+        proceed_to_next_client = 0;
 
         // Initiate the process of receiving the file size from the connected client
         total_bytes_read = 0;
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
             // Handle read errors or client disconnection
             if (bytes_read <= 0) {
                 if (bytes_read == 0 || errno == ETIMEDOUT || errno == ECONNRESET || errno == EPIPE) {
-                    cont_to_next_clnt = 1; // Mark to continue to next client due to disconnection
+                    proceed_to_next_client = 1; // Mark to continue to next client due to disconnection
                     break;
                 }
                 perror("Failed to read the file size from the client.");
@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Continue to the next client if needed
-        if (cont_to_next_clnt) {
+        if (proceed_to_next_client) {
             handle_client(new_sock_fd);
             continue; // Move on to accept a new client connection
         }
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
 
         // Receive the file content from the client
         total_bytes_read = 0;
-        total_printable_chars_host = 0;
+        pcc_host = 0;
         memset(client_pcc, 0, sizeof(client_pcc)); // Zero out the character count array
 
         // Read the file content in chunks until the entire file is received
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
             // Handle read errors or client disconnection
             if (bytes_read <= 0) {
                 if (bytes_read == 0 || errno == ETIMEDOUT || errno == ECONNRESET || errno == EPIPE) {
-                    cont_to_next_clnt = 1; // Mark to continue to next client due to disconnection
+                    proceed_to_next_client = 1; // Mark to continue to next client due to disconnection
                     break;
                 }
                 perror("Failed reading file content from socket.");
@@ -206,13 +206,13 @@ int main(int argc, char *argv[]) {
             for (i = 0; i < bytes_read; i++) {
                 if (buffer[i] >= 32 && buffer[i] <= 126) {
                     client_pcc[(unsigned int) buffer[i]]++;
-                    total_printable_chars_host++;
+                    pcc_host++;
                 }
             }
         }
 
         // Continue to the next client if needed
-        if (cont_to_next_clnt) {
+        if (proceed_to_next_client) {
             handle_client(new_sock_fd);
             continue; // Move on to accept a new client connection
         }
@@ -220,17 +220,17 @@ int main(int argc, char *argv[]) {
         // Send the count of printable characters back to the client
         total_bytes_sent = 0;
         // Convert the total count of printable characters from host to network byte order
-        total_printable_chars_network = htonl(total_printable_chars_host);
+        pcc_network = htonl(pcc_host);
 
         // Continues sending data until the entire count of printable characters has been transmitted
-        while (total_bytes_sent < sizeof(total_printable_chars_network)) {
-            bytes_sent = write(new_sock_fd, (char *)(&total_printable_chars_network) + total_bytes_sent,
-                               sizeof(total_printable_chars_network) - total_bytes_sent);
+        while (total_bytes_sent < sizeof(pcc_network)) {
+            bytes_sent = write(new_sock_fd, (char *)(&pcc_network) + total_bytes_sent,
+                               sizeof(pcc_network) - total_bytes_sent);
 
             // Handle write errors or client disconnection
             if (bytes_sent < 0) {
                 if (errno == ETIMEDOUT || errno == ECONNRESET || errno == EPIPE) {
-                    cont_to_next_clnt = 1; // Mark to continue to next client due to disconnection
+                    proceed_to_next_client = 1; // Mark to continue to next client due to disconnection
                     break;
                 }
                 perror("Failed to send the count of printable characters to the client.");
@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Continue to the next client if needed
-        if (cont_to_next_clnt) {
+        if (proceed_to_next_client) {
             handle_client(new_sock_fd);
             continue; // Move on to accept a new client connection
         }

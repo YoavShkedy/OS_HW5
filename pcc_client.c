@@ -11,10 +11,6 @@
 const int BUFF_SIZE = 1000 * 1000; // Approximately 1MB
 
 int main(int argc, char *argv[]) {
-    // argv[1]: Server's IP address (must be a valid IPv4 address format)
-    // argv[2]: Server's port number (must be a valid 16-bit unsigned integer, in the range of 0 to 65535)
-    // argv[3]: Path of the file to send to the server
-
     int fd; // File descriptor for the file to be sent
     int sock_fd; // Socket file descriptor for TCP connection to the server
     char file_buffer[BUFF_SIZE]; // Buffer for temporarily storing file content during read and send operations
