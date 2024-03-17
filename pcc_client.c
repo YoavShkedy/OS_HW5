@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
 
     // Convert the count from network byte order to host byte order and print it
     printable_chars_cnt = ntohl(printable_chars_cnt_network);
-    printf("# of printable characters: %u\n", printable_chars_cnt);
+    printf("# of printable characters: %hu\n", printable_chars_cnt);
 
     // Close the socket descriptor
     close(sock_fd);

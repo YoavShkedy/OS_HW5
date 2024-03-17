@@ -21,7 +21,7 @@ unsigned int total_pcc[127]; // Array to keep track of the total count of printa
  void shutdown_server() {
     int i;
     for (i = 32; i < 127; i++)
-        printf("char '%c' : %u times\n", i, total_pcc[i]);
+        printf("char '%c' : %hu times\n", i, total_pcc[i]);
     exit(0);
 }
 
