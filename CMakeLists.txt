@@ -5,4 +5,4 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(HW5
         pcc_server.c
-        ppc_client.c)
+        pcc_client.c)
